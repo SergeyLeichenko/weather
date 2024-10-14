@@ -40,6 +40,5 @@ body {
   background: linear-gradient(45deg, rgba(45,176,224,1) 0%, rgba(96,40,168,1) 100%);
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#2db0e0', endColorstr='#6028a8', GradientType=1 );
   padding: 20px;
-  height: 90vh;
 }
 </style>

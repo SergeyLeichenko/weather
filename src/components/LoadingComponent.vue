@@ -25,7 +25,7 @@ export default {
 <style scoped>
 .loading-box {
   position: absolute;
-  left: 16%;
+  left: 18%;
   top: 30%;
 }
 .lds-spinner {
@@ -48,7 +48,7 @@ export default {
   width: 6px;
   height: 18px;
   border-radius: 20%;
-  background: #000;
+  background: #ffffff;
 }
 .lds-spinner div:nth-child(1) {
   transform: rotate(0deg);

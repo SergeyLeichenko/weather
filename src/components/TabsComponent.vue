@@ -7,32 +7,29 @@
     <div class="tabs__content">
 
       <div v-if="active === 0" class="btn-add">
-        <button class="btn-add-new" @click="addNewCity">Додати нове місто</button>
+        <button class="btn-add-new" @click="openField" v-show="hideBtn">Додати нове місто</button>
+
+        <form class="input-city" v-show="hideInputNewCity">
+          <input type="text" name="city" placeholder="Введіть місто" autocomplete="on" v-model="newCity" />
+          <div class="add-close">
+            <button class="btn-new-city add" @click.prevent="addNewCity">Додати</button>
+            <button class="btn-new-city" @click.prevent="hideBtn = true && !hideInputNewCity">Закрити</button>
+          </div>
+        </form>
       </div>
 
       <div v-if="active === 0" class="container-weathers">
         <div v-if="loading">
             <LoadingComponent />
         </div>
+          
           <CardWeather 
-            @getWeather="getWeather"
-            :weather="this.weather"
-            :showFavorite="false"
-            :class="{opacityCard: loading }"
-            :daysOfWeek="daysOfWeek"
-            :temp="temp"
-            @addFavorite="addFavorite(weather)"
-            @getForFiveDays="getForFiveDays(weather)"
-          />
-
-          <CardWeather 
-            v-for="(item, i) in this.weathers" 
+            v-for="(item, i) in weathers" 
             :key="item + i"
-            :weather="item.weather"
-            :hideForm="hideForm"
-            :showFavorite="showFavorite"
+            :weather="item"
+            :showFavorite="item.active"
             :daysOfWeek="item.daysOfWeek"
-            :temp="item.temp"
+            :temp="item.tempOfWeek"
             @addFavorite="addFavorite(item)"
             @removeCard="removeCard(i)"
             @getForFiveDays="getForFiveDays(item)"
@@ -41,13 +38,12 @@
 
       <div v-if="active === 1" class="container-weathers">
         <CardWeather 
-          v-for="(item, i) in this.favorites" 
+          v-for="(item, i) in favorites" 
           :key="item + i"
-          :weather="item.weather"
-          :hideForm="hideForm"
-          :showFavorite="showFavorite"
+          :weather="item"
+          :showFavorite="item.active"
           :daysOfWeek="item.daysOfWeek"
-          :temp="item.temp"
+          :temp="item.tempOfWeek"
           @removeCard="removeCard(i)"
           @getForFiveDays="getForFiveDays(item)"
         />
@@ -79,41 +75,59 @@ export default {
       ],
       weathers: [],
       favorites: [],
-      weather: null,
-      hideForm: false,
-      showFavorite: false,
       loading: false,
-      daysOfWeek: [],
-      temp: []
+      newCity: '',
+      hideInputNewCity: true,
+      hideBtn: false
     }
   },
+  created() {
+    this.getUserLocation()
+  },
   methods: {
+    openField() {
+      this.hideInputNewCity = true
+      this.hideBtn = false
+      this.newCity = ''
+    },
     activate(index) {
       this.active = index
     },
-    async getWeather(city) {
-      if (!city) return
-
+    addNewCity() {
+      if (this.newCity === '') {
+        return
+      } else {
+        this.hideInputNewCity = false
+        this.hideBtn = true
+      }
+      this.getWeather()
+    },
+    // get weather with your city
+    async getWeather() {
       this.loading = true
 
       let data = await axios
       .get(`${this.baseUrl}/data/2.5/weather`, {
         params: {
-          q: city,
+          q: this.newCity,
           appid: this.apiKey,
           lang: 'ru',
           units: 'metric'
         }
       })
 
-      if (data) this.loading = false
+      if (data) {
+        this.loading = false
+      }
 
       let sunset = data.data.sys.sunset
       let date = new Date()
       date.setTime(sunset)
       let sunset_date = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
 
-      this.weather = {
+      let weather = {
+        active: false,
+        id: data.data.id,
         temp: data.data.main.temp,
         city: data.data.name,
         country: data.data.sys.country,
@@ -122,45 +136,62 @@ export default {
         lat: data.data.coord.lat,
         lon: data.data.coord.lon,
         icon: data.data.weather[0].icon + '.png',
-        description: data.data.weather[0].description
+        description: data.data.weather[0].description,
+        daysOfWeek: [],
+        tempOfWeek: []
       }
 
-      if (this.weather) {
-        this.isDisabled = false
-      }
-    },
-    addNewCity() {
-      this.isDisabled = true
-
-      this.weather = {
-        weather: this.weather,
-        daysOfWeek: this.daysOfWeek,
-        temp: this.temp
-      }
-
-      this.weathers.push(this.weather)
-
-      this.weather = {}
-      this.hideForm = false
-      this.showFavorite = true
-      localStorage.setItem('showFavorite', "true")
-
+      let isCardAdd = false
+        if (this.weathers.length) {
+          this.weathers.map(function (elem) {
+            if (data.data.id === elem.id) {
+              alert('Місто вже додано')
+              isCardAdd = true
+            }
+          })
+          if (!isCardAdd) {
+            this.weathers.push(weather)
+          }
+        } else {
+          this.weathers.push(weather)
+        }
+      
       this.saveWeatherInLocalStore()
-      location.reload()
     },
     saveWeatherInLocalStore() {
       localStorage.setItem('weathers', JSON.stringify(this.weathers))
     },
+    // add favorite card
     addFavorite(item) {
       if (this.favorites.length > 4) {
         alert('для додавання видаліть місто … тому що максимум 5')
       } else {
-        this.showFavorite = true
-        this.hideForm = false
-        this.favorites.push(item)
+        this.weathers.forEach((el) => {
+          if (el.city === item.city) {
+            el.active = true
+          }
+        })
+
+        let isCardExists = false
+        if (this.favorites.length) {
+          this.favorites.map(function (elem) {
+            if (elem.city === item.city) {
+              alert('Картку вже додано до обраного')
+              isCardExists = true
+            }
+          });
+          if (!isCardExists) {
+            this.favorites.push({...item, active: true})
+          }
+        } else {
+          this.favorites.push({...item, active: true})
+        }
+
         localStorage.setItem("favorites", JSON.stringify(this.favorites))
+        this.saveWeatherInLocalStore()
       }
     },
+    // remowe card with weather
     removeCard(i) {
       if (confirm('Ви дійсно хочете видалити?')) {
         if (this.active === 0) {
@@ -178,8 +209,8 @@ export default {
         }
       }
     },
+    // get weather for five days
     async getForFiveDays(item) {
-
       let data = await axios
         .get(`${this.baseUrl}/data/2.5/forecast`, {
           params: {
@@ -197,9 +228,43 @@ export default {
         let ms = item.dt * 1000
         let weekdayName = new Date(ms).toLocaleString('ua', {weekday: 'long'})
 
-        this.daysOfWeek.push(weekdayName)
-        this.temp.push(Math.floor(item.main.temp))
+        this.weathers.forEach((el) => {
+          if (el.city === data.data.city.name) {
+            el.daysOfWeek.push(weekdayName)
+            el.tempOfWeek.push(Math.floor(item.main.temp))
+          }
+        })
       })
+      this.saveWeatherInLocalStore()
+    },
+    // get user location
+    getUserLocation() {
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+
+      const success = async (pos) => {
+        const crd = pos.coords
+
+        const response = await axios.get(`https://api.geoapify.com/v1/geocode/reverse`, {
+          params: {
+            lat: crd.latitude,
+            lon: crd.longitude,
+            apiKey: "06a6d03278a14cb78c916513eb497077"
+          }
+        })
+
+        let getYourCity = response.data.features[0].properties.city
+        this.newCity = getYourCity
+      }
+
+      const error = (err) => {
+        console.log(err.code + ' ' + err.message)
+      }
+
+      navigator.geolocation.getCurrentPosition(success, error, options)
     }
   },
   mounted() {
@@ -217,17 +282,7 @@ export default {
       }
     } catch (err) {
       localStorage.removeItem('favorites')
-    }
-
-    try {
-      if (localStorage.getItem('showFavorite')) {
-        this.showFavorite = localStorage.getItem('showFavorite')
-      } 
-    } catch (err) {
-      localStorage.removeItem('showFavorite')
-    }
-
-    
+    }    
   }
 }
 </script>
@@ -286,6 +341,41 @@ export default {
   padding: 10px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.input-city {
+  max-width: 320px;
+  display: block;
+  margin: auto;
+}
+.input-city input[type="text"] {
+  width: 320px;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  background-color: #c0c0c045;
+}
+
+.add-close {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-new-city {
+  background: #ddd;
+  padding: 10px;
+  width: 100px;
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.btn-new-city:hover {
+  background: #235d9c;
+  color: #fff;
+}
+.btn-new-city.add {
+  margin-right: 20px;
 }
 
 @media screen and (max-width: 842px) {

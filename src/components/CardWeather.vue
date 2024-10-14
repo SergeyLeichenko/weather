@@ -1,14 +1,10 @@
 <template>
   <div class="infoWeath" @click="$emit('getIdCard')">
-    <div class="favorite" v-if="showFavorite">
-      <button class="btn" @click="removeCard">Видалити</button>
-      <button class="btn" :class="{ 'active-favorite': isActiveFavirite }" @click="addFavorite">В Обране</button>
+    <div class="favorite">
+      <button class="btn" @click="$emit('removeCard')">Видалити</button>
+      <button class="btn" :class="{ 'active-favorite': showFavorite }" @click="$emit('addFavorite')">В Обране</button>
     </div>
     <div class="getWeather">
-      <form class="form" @submit.prevent="getWeather" v-if="hideForm">
-        <input type="text" name="city" placeholder="Введіть місто" autocomplete="on" v-model="city" />
-        <button class="btn">Отримати погоду</button>
-      </form>
 
       <div class="info-list" v-if="weather">
         <div class="temp" v-if="weather.city">
@@ -25,11 +21,11 @@
         <p>Захід сонця: {{ weather.sunset }}</p>
       </div>
       <div class="buttons">
-        <button class="btn" @click="getForFiveDays">на 5 днів</button>
+        <button class="btn" @click="$emit('getForFiveDays')">на 5 днів</button>
       </div>
 
       <div class="line-chart">
-        <Bar :chart-data="chartData"/>
+        <Bar :chart-data="chartData" />
       </div>
 
     </div>
@@ -37,7 +33,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { Bar } from 'vue-chartjs'
 import { Chart, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
 import api from '../api/api.json'
@@ -47,14 +42,13 @@ Chart.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 export default {
   components: { Bar },
   props: {
-    weather: {},
-    hideForm: {
-      type: Boolean,
-      default: true
+    weather: {
+      type: Object,
+      default: () => {}
     },
     showFavorite: {
       type: Boolean,
-      default: false
+      default: true
     },
     daysOfWeek: {
       type: Array,
@@ -85,53 +79,6 @@ export default {
         ]
       }
     }
-  },
-  created() {
-    this.getLocation()
-  },
-  methods: {
-    getWeather() {
-      this.$emit('getWeather', this.city)
-      this.city = ''
-    },
-    addFavorite() {
-      this.$emit('addFavorite')
-      this.isActiveFavirite = true
-    },
-    removeCard() {
-      this.$emit('removeCard')
-    },
-    getForFiveDays() {
-      this.$emit('getForFiveDays')
-    },
-    getLocation() {
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
-
-      const success = async (pos) => {
-        const crd = pos.coords
-
-        const response = await axios.get(`https://api.geoapify.com/v1/geocode/reverse`, {
-          params: {
-            lat: crd.latitude,
-            lon: crd.longitude,
-            apiKey: "06a6d03278a14cb78c916513eb497077"
-          }
-        })
-
-        let getYourCity = response.data.features[0].properties.city
-        this.city = getYourCity
-      }
-
-      const error = (err) => {
-        console.log(err.code + ' ' + err.message)
-      }
-
-      navigator.geolocation.getCurrentPosition(success, error, options)
-    }
   }
 }
 </script>
@@ -150,17 +97,16 @@ export default {
 }
 
 .infoWeath {
-  min-width: 40%;
-  /* width: 40%; */
+  max-width: 320px;
   height: auto;
-  background: url("../assets/polygon.jpg") center center no-repeat;
+  background: url("../assets/bg.jpeg") center center no-repeat;
   background-blend-mode: multiply;
   background-color: #484747;
   background-size: cover;
   color: #000;
   padding: 20px;
   margin-bottom: 40px;
-  margin-left: 50px;
+  margin-left: 25px;
 }
 
 .favorite {
@@ -172,19 +118,15 @@ export default {
   background: red;
 }
 
-.getWeather {
-  margin: 40px 0;
-}
-
 .form input[type="text"] {
   background-color: transparent;
   border: 0;
   border-bottom: solid 2px #113a65;
-  width: 50%;
+  width: 100%;
   padding-bottom: 4px;
   color: #fff;
   font-weight: lighter;
-  margin-right: 20px;
+  margin-bottom: 10px;
   font-size: 20px;
   outline: none;
 }
@@ -277,4 +219,5 @@ export default {
   .tabs {
     padding: 2px;
   }
-}</style>
+}
+</style>
