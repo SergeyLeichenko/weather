@@ -201,7 +201,7 @@ export default {
 
 @media screen and (max-width: 842px) {
   .infoWeath {
-    width: 100%;
+    width: 87%;
     margin-left: 0;
   }
 

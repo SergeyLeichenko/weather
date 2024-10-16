@@ -344,12 +344,12 @@ export default {
 }
 
 .input-city {
-  max-width: 320px;
+  width: 320px;
   display: block;
   margin: auto;
 }
 .input-city input[type="text"] {
-  width: 320px;
+  width: 93%;
   padding: 10px;
   border-radius: 5px;
   margin-bottom: 10px;
